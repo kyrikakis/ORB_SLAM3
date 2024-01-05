@@ -1364,6 +1364,11 @@ bool System::isFinished()
     return (GetTimeFromIMUInit()>0.1);
 }
 
+cv::Mat System::GetCurrentFrame()
+{
+    return mpFrameDrawer->DrawFrame();
+}
+
 void System::ChangeDataset()
 {
     if(mpAtlas->GetCurrentMap()->KeyFramesInMap() < 12)

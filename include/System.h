@@ -184,6 +184,8 @@ public:
 
     void ChangeDataset();
 
+    cv::Mat GetCurrentFrame();
+
     float GetImageScale();
 
 #ifdef REGISTER_TIMES
