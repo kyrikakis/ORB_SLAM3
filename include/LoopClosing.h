@@ -82,6 +82,8 @@ public:
 
     bool isFinished();
 
+    bool isMapReady();
+
     Viewer* mpViewer;
 
 #ifdef REGISTER_TIMES
@@ -186,6 +188,7 @@ protected:
     //-------
     Map* mpLastMap;
 
+    bool loopDetected;
     bool mbLoopDetected;
     int mnLoopNumCoincidences;
     int mnLoopNumNotFound;
@@ -195,6 +198,7 @@ protected:
     KeyFrame* mpLoopMatchedKF;
     std::vector<MapPoint*> mvpLoopMPs;
     std::vector<MapPoint*> mvpLoopMatchedMPs;
+    bool mergeDetected;
     bool mbMergeDetected;
     int mnMergeNumCoincidences;
     int mnMergeNumNotFound;

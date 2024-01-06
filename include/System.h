@@ -186,6 +186,13 @@ public:
 
     cv::Mat GetCurrentFrame();
 
+    Atlas* getMap() {
+		return mpAtlas;
+	}
+	Tracking* getTracker(){ return mpTracker; }
+	LocalMapping* getLocalMapping(){ return mpLocalMapper; }
+	LoopClosing* getLoopClosing(){ return mpLoopCloser; }
+
     float GetImageScale();
 
 #ifdef REGISTER_TIMES

@@ -36,7 +36,7 @@ LoopClosing::LoopClosing(Atlas *pAtlas, KeyFrameDatabase *pDB, ORBVocabulary *pV
     mbResetRequested(false), mbResetActiveMapRequested(false), mbFinishRequested(false), mbFinished(true), mpAtlas(pAtlas),
     mpKeyFrameDB(pDB), mpORBVocabulary(pVoc), mpMatchedKF(NULL), mLastLoopKFid(0), mbRunningGBA(false), mbFinishedGBA(true),
     mbStopGBA(false), mpThreadGBA(NULL), mbFixScale(bFixScale), mnFullBAIdx(0), mnLoopNumCoincidences(0), mnMergeNumCoincidences(0),
-    mbLoopDetected(false), mbMergeDetected(false), mnLoopNumNotFound(0), mnMergeNumNotFound(0), mbActiveLC(bActiveLC)
+    mbLoopDetected(false), loopDetected(false), mbMergeDetected(false), mergeDetected(false), mnLoopNumNotFound(0), mnMergeNumNotFound(0), mbActiveLC(bActiveLC)
 {
     mnCovisibilityConsistencyTh = 3;
     mpLastCurrentKF = static_cast<KeyFrame*>(NULL);
@@ -170,6 +170,7 @@ void LoopClosing::Run()
                         //mpTracker->SetStepByStep(true);
 
                         Verbose::PrintMess("*Merge detected", Verbose::VERBOSITY_QUIET);
+                        mergeDetected = true;
 
 #ifdef REGISTER_TIMES
                         std::chrono::steady_clock::time_point time_StartMerge = std::chrono::steady_clock::now();
@@ -220,7 +221,8 @@ void LoopClosing::Run()
                 }
 
                 if(mbLoopDetected)
-                {
+                {   
+                    loopDetected = true;
                     bool bGoodLoop = true;
                     vdPR_CurrentTime.push_back(mpCurrentKF->mTimeStamp);
                     vdPR_MatchedTime.push_back(mpLoopMatchedKF->mTimeStamp);
@@ -2533,6 +2535,18 @@ bool LoopClosing::isFinished()
 {
     unique_lock<mutex> lock(mMutexFinish);
     return mbFinished;
+}
+
+bool LoopClosing::isMapReady() 
+{
+    bool detected = loopDetected || mergeDetected;
+    if(loopDetected) {
+        loopDetected = false;
+    }
+    if(mergeDetected) {
+        mergeDetected = false;
+    }
+    return detected;
 }
 
 
