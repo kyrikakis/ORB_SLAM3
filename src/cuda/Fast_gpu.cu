@@ -2,7 +2,6 @@
 #include "opencv2/core/cuda/utility.hpp"
 #include "opencv2/core/cuda/reduce.hpp"
 #include "opencv2/core/cuda/functional.hpp"
-#include <helper_cuda.h>
 #include <cuda/Fast.hpp>
 
 using namespace cv;
@@ -301,21 +300,24 @@ namespace ORB_SLAM3 { namespace cuda {
   GpuFast::GpuFast(int highThreshold, int lowThreshold, int maxKeypoints)
     : highThreshold(highThreshold), lowThreshold(lowThreshold), maxKeypoints(maxKeypoints)
   {
-    checkCudaErrors( cudaStreamCreate(&stream) );
+    cudaStreamCreate(&stream);
+    // checkCudaErrors( cudaStreamCreate(&stream);
     cvStream = StreamAccessor::wrapStream(stream);
-    checkCudaErrors( cudaMallocManaged(&kpLoc, sizeof(short2) * maxKeypoints) );
-    checkCudaErrors( cudaMallocManaged(&kpScore, sizeof(float) * maxKeypoints) );
-    checkCudaErrors( cudaStreamAttachMemAsync(stream, kpLoc) );
-    checkCudaErrors( cudaStreamAttachMemAsync(stream, kpScore) );
-    checkCudaErrors( cudaMalloc(&counter_ptr, sizeof(unsigned int)) );
+    cudaMallocManaged(&kpLoc, sizeof(short2) * maxKeypoints);
+    // checkCudaErrors( cudaMallocManaged(&kpLoc, sizeof(short2) * maxKeypoints) );
+    cudaMallocManaged(&kpScore, sizeof(float) * maxKeypoints);
+    // checkCudaErrors( cudaMallocManaged(&kpScore, sizeof(float) * maxKeypoints) );
+    cudaStreamAttachMemAsync(stream, kpLoc);
+    cudaStreamAttachMemAsync(stream, kpScore);
+    cudaMalloc(&counter_ptr, sizeof(unsigned int));
   }
 
   GpuFast::~GpuFast() {
     cvStream.~Stream();
-    checkCudaErrors( cudaFree(counter_ptr) );
-    checkCudaErrors( cudaFree(kpScore) );
-    checkCudaErrors( cudaFree(kpLoc) );
-    checkCudaErrors( cudaStreamDestroy(stream) );
+    cudaFree(counter_ptr);
+    cudaFree(kpScore);
+    cudaFree(kpLoc);
+    cudaStreamDestroy(stream);
   }
 
   void GpuFast::detectAsync(InputArray _image) {
@@ -327,17 +329,17 @@ namespace ORB_SLAM3 { namespace cuda {
       scoreMat = GpuMat(image.size(), CV_32SC1);
     }
     scoreMat.setTo(Scalar::all(0), cvStream);
-    checkCudaErrors( cudaMemsetAsync(counter_ptr, 0, sizeof(unsigned int), stream) );
+    cudaMemsetAsync(counter_ptr, 0, sizeof(unsigned int), stream);
 
     dim3 dimBlock(32, 8);
     dim3 dimGrid(divUp(image.cols, dimBlock.x), divUp(image.rows, dimBlock.y * 4));
     tileCalcKeypoints_kernel<<<dimGrid, dimBlock, 0, stream>>>(image, kpLoc, kpScore, maxKeypoints, highThreshold, lowThreshold, scoreMat, counter_ptr);
-    checkCudaErrors( cudaGetLastError() );
+    cudaGetLastError();
   }
 
   void GpuFast::joinDetectAsync(std::vector<KeyPoint>& keypoints) {
-    checkCudaErrors( cudaMemcpyAsync(&count, counter_ptr, sizeof(unsigned int), cudaMemcpyDeviceToHost, stream) );
-    checkCudaErrors( cudaStreamSynchronize(stream) );
+    cudaMemcpyAsync(&count, counter_ptr, sizeof(unsigned int), cudaMemcpyDeviceToHost, stream);
+    cudaStreamSynchronize(stream);
     count = std::min(count, maxKeypoints);
     keypoints.resize(count);
     for (int i = 0; i < count; ++i) {
@@ -355,7 +357,7 @@ namespace ORB_SLAM3 { namespace cuda {
 
   void IC_Angle::loadUMax(const int* u_max, int count)
   {
-    checkCudaErrors( cudaMemcpyToSymbol(c_u_max, u_max, count * sizeof(int)) );
+    cudaMemcpyToSymbol(c_u_max, u_max, count * sizeof(int));
   }
 
   __global__ void IC_Angle_kernel(const PtrStepb image, KeyPoint * keypoints, const int npoints, const int half_k)
@@ -429,15 +431,15 @@ namespace ORB_SLAM3 { namespace cuda {
   }
 
   IC_Angle::IC_Angle(unsigned int maxKeypoints) : maxKeypoints(maxKeypoints) {
-    checkCudaErrors( cudaStreamCreate(&stream) );
+    cudaStreamCreate(&stream);
     _cvStream = StreamAccessor::wrapStream(stream);
-    checkCudaErrors( cudaMalloc(&keypoints, sizeof(KeyPoint) * maxKeypoints) );
+    cudaMalloc(&keypoints, sizeof(KeyPoint) * maxKeypoints);
   }
 
   IC_Angle::~IC_Angle() {
     _cvStream.~Stream();
-    checkCudaErrors( cudaFree(keypoints) );
-    checkCudaErrors( cudaStreamDestroy(stream) );
+    cudaFree(keypoints);
+    cudaStreamDestroy(stream);
   }
 
   void IC_Angle::launch_async(InputArray _image, KeyPoint * _keypoints, int npoints, int half_k, int minBorderX, int minBorderY, int octave, int size) {
@@ -445,25 +447,25 @@ namespace ORB_SLAM3 { namespace cuda {
       return ;
     }
     const cv::cuda::GpuMat image = _image.getGpuMat();
-    checkCudaErrors( cudaMemcpyAsync(keypoints, _keypoints, sizeof(KeyPoint) * npoints, cudaMemcpyHostToDevice, stream) );
+    cudaMemcpyAsync(keypoints, _keypoints, sizeof(KeyPoint) * npoints, cudaMemcpyHostToDevice, stream);
     // Add border to coordinates and scale information
     {
       dim3 block(256);
       dim3 grid(divUp(npoints, block.x));
       addBorder_kernel<<<grid, block, 0, stream>>>(keypoints, npoints, minBorderX, minBorderY, octave, size);
-      checkCudaErrors( cudaGetLastError() );
+      cudaGetLastError();
     }
     {
       dim3 block(32, 8);
       dim3 grid(divUp(npoints, block.y));
       IC_Angle_kernel<<<grid, block, 0, stream>>>(image, keypoints, npoints, half_k);
-      checkCudaErrors( cudaGetLastError() );
+      cudaGetLastError();
     }
   }
 
   void IC_Angle::join(KeyPoint * _keypoints, int npoints) {
-    checkCudaErrors( cudaMemcpyAsync(_keypoints, keypoints, sizeof(KeyPoint) * npoints, cudaMemcpyDeviceToHost, stream) );
-    checkCudaErrors( cudaStreamSynchronize(stream) );
+    cudaMemcpyAsync(_keypoints, keypoints, sizeof(KeyPoint) * npoints, cudaMemcpyDeviceToHost, stream);
+    cudaStreamSynchronize(stream);
   }
 
 } } // namespace fast

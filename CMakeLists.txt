@@ -1,7 +1,7 @@
 add_compile_options(-std=c++14)
 add_definitions(-w)
 cmake_minimum_required(VERSION 3.22)
-project(ORB_SLAM3)
+project(ORB_SLAM3 LANGUAGES CUDA CXX)
 
 IF(NOT CMAKE_BUILD_TYPE)
   SET(CMAKE_BUILD_TYPE Release)
@@ -14,10 +14,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall   -O3")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -march=native")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -march=native")
 
-find_package(CUDA QUIET REQUIRED)
-set(CUDA_PROPAGATE_HOST_FLAGS OFF)
-SET(CUDA_HOST_COMPILER /usr/bin/g++)
-LIST(APPEND CUDA_NVCC_FLAGS "--compiler-options -fno-strict-aliasing -use_fast_math")
+find_package(CUDAToolkit REQUIRED)
 
 # Check C++11 or C++0x support
 include(CheckCXXCompilerFlag)
@@ -58,7 +55,6 @@ ${PROJECT_SOURCE_DIR}/include/CameraModels
 ${PROJECT_SOURCE_DIR}/Thirdparty/Sophus
 ${EIGEN3_INCLUDE_DIR}
 ${Pangolin_INCLUDE_DIRS}
-${CUDA_TOOLKIT_ROOT_DIR}/samples/common/inc
 ${CUDA_INCLUDE_DIRS}
 )
 

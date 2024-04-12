@@ -1,5 +1,4 @@
 #include <cassert>
-#include <helper_cuda.h>
 #include <cuda/Allocator.hpp>
 
 namespace ORB_SLAM3 { namespace cuda {
@@ -13,12 +12,14 @@ bool Allocator::allocate(cv::cuda::GpuMat* mat, int rows, int cols, size_t elemS
     if (rows > 1 && cols > 1)
     {
         mat->step = getPitch(elemSize * cols);
-        checkCudaErrors(cudaMallocManaged(&mat->data, mat->step * rows));
+        cudaMallocManaged(&mat->data, mat->step * rows);
+        // checkCudaErrors(cudaMallocManaged(&mat->data, mat->step * rows));
     }
     else
     {
         // Single row or single column must be continuous
-        checkCudaErrors(cudaMallocManaged(&mat->data, elemSize * cols * rows));
+        cudaMallocManaged(&mat->data, elemSize * cols * rows);
+        // checkCudaErrors(cudaMallocManaged(&mat->data, elemSize * cols * rows));
         mat->step = elemSize * cols;
     }
 
@@ -29,7 +30,8 @@ bool Allocator::allocate(cv::cuda::GpuMat* mat, int rows, int cols, size_t elemS
 
 void Allocator::free(cv::cuda::GpuMat* mat)
 {
-    checkCudaErrors(cudaFree(mat->datastart));
+    cudaFree(mat->datastart);
+    // checkCudaErrors(cudaFree(mat->datastart));
     delete mat->refcount;
 }
 
@@ -39,7 +41,7 @@ cv::cuda::GpuMat::Allocator * gpu_mat_allocator;
 
 
 namespace {
-  using namespace ORB_SLAM2;
+  using namespace ORB_SLAM3;
 
   void __attribute__((constructor)) init() {
     // Setup GPU Memory Management

@@ -2,7 +2,6 @@
 #include "opencv2/core/cuda/utility.hpp"
 #include "opencv2/core/cuda/reduce.hpp"
 #include "opencv2/core/cuda/functional.hpp"
-#include <helper_cuda.h>
 #include <cuda/Orb.hpp>
 #include <Utils.hpp>
 
@@ -15,7 +14,7 @@ namespace ORB_SLAM3 { namespace cuda {
   __constant__ unsigned char c_pattern[sizeof(Point) * 512];
 
   void GpuOrb::loadPattern(const Point * _pattern) {
-    checkCudaErrors( cudaMemcpyToSymbol(c_pattern, _pattern, sizeof(Point) * 512) );
+    cudaMemcpyToSymbol(c_pattern, _pattern, sizeof(Point) * 512);
   }
 
 #define GET_VALUE(idx) \
@@ -60,15 +59,15 @@ namespace ORB_SLAM3 { namespace cuda {
 #undef GET_VALUE
 
   GpuOrb::GpuOrb(int maxKeypoints) : maxKeypoints(maxKeypoints), descriptors(maxKeypoints, 32, CV_8UC1) {
-    checkCudaErrors( cudaStreamCreate(&stream) );
+    cudaStreamCreate(&stream);
     cvStream = StreamAccessor::wrapStream(stream);
-    checkCudaErrors( cudaMalloc(&keypoints, sizeof(KeyPoint) * maxKeypoints) );
+    cudaMalloc(&keypoints, sizeof(KeyPoint) * maxKeypoints);
   }
 
   GpuOrb::~GpuOrb() {
     cvStream.~Stream();
-    checkCudaErrors( cudaFree(keypoints) );
-    checkCudaErrors( cudaStreamDestroy(stream) );
+    cudaFree(keypoints);
+    cudaStreamDestroy(stream);
   }
 
   void GpuOrb::launch_async(InputArray _image, const KeyPoint * _keypoints, const int npoints) {
@@ -78,18 +77,18 @@ namespace ORB_SLAM3 { namespace cuda {
     }
     const GpuMat image = _image.getGpuMat();
 
-    checkCudaErrors( cudaMemcpyAsync(keypoints, _keypoints, sizeof(KeyPoint) * npoints, cudaMemcpyHostToDevice, stream) );
+    cudaMemcpyAsync(keypoints, _keypoints, sizeof(KeyPoint) * npoints, cudaMemcpyHostToDevice, stream);
     desc = descriptors.rowRange(0, npoints);
     desc.setTo(Scalar::all(0), cvStream);
 
     dim3 dimBlock(32);
     dim3 dimGrid(npoints);
     calcOrb_kernel<<<dimGrid, dimBlock, 0, stream>>>(image, keypoints, npoints, desc);
-    checkCudaErrors( cudaGetLastError() );
+    cudaGetLastError();
   }
 
   void GpuOrb::join(Mat & _descriptors) {
     desc.download(_descriptors, cvStream);
-    checkCudaErrors( cudaStreamSynchronize(stream) );
+    cudaStreamSynchronize(stream);
   }
 } }
