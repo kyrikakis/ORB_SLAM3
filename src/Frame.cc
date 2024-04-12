@@ -905,8 +905,9 @@ void Frame::ComputeStereoMatches()
 
             // sliding window search
             const int w = 5;
-            cv::Mat IL = mpORBextractorLeft->mvImagePyramid[kpL.octave].rowRange(scaledvL-w,scaledvL+w+1).colRange(scaleduL-w,scaleduL+w+1);
-
+            // cv::Mat IL = mpORBextractorLeft->mvImagePyramid[kpL.octave].rowRange(scaledvL-w,scaledvL+w+1).colRange(scaleduL-w,scaleduL+w+1);
+            cv::cuda::GpuMat gMat = mpORBextractorLeft->mvImagePyramid[kpL.octave].rowRange(scaledvL - w, scaledvL + w + 1).colRange(scaleduL - w, scaleduL + w + 1);
+            cv::Mat IL(gMat.rows, gMat.cols, gMat.type(), gMat.data, gMat.step);
             int bestDist = INT_MAX;
             int bestincR = 0;
             const int L = 5;
@@ -920,8 +921,9 @@ void Frame::ComputeStereoMatches()
 
             for(int incR=-L; incR<=+L; incR++)
             {
-                cv::Mat IR = mpORBextractorRight->mvImagePyramid[kpL.octave].rowRange(scaledvL-w,scaledvL+w+1).colRange(scaleduR0+incR-w,scaleduR0+incR+w+1);
-
+                //cv::Mat IR = mpORBextractorRight->mvImagePyramid[kpL.octave].rowRange(scaledvL-w,scaledvL+w+1).colRange(scaleduR0+incR-w,scaleduR0+incR+w+1);
+                cv::cuda::GpuMat gMat = mpORBextractorRight->mvImagePyramid[kpL.octave].rowRange(scaledvL - w, scaledvL + w + 1).colRange(scaleduR0 + incR - w, scaleduR0 + incR + w + 1);
+                cv::Mat IR(gMat.rows, gMat.cols, gMat.type(), gMat.data, gMat.step);
                 float dist = cv::norm(IL,IR,cv::NORM_L1);
                 if(dist<bestDist)
                 {
